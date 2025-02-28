@@ -1,0 +1,62 @@
+nltk_data/*
+raw_data/*
+employee_churn/training_outputs/*
+.env
+.envrc
+
+# OS generated files #
+######################
+.DS_Store
+__MACOSX
+# Jupiter Notebook #
+.pytest_cache
+__pycache__
+*checkpoint.ipynb
+*.ipynb_checkpoints
+
+# inteliJ #
+.idea
+*.gz
+*PKG-INFO
+*.egg-info
+*.csv
+*.zip
+mlruns
+*.sqlite
+
+# IDE #
+*.vscode
+
+# Virtual environment
+my_venv/
+
+# Python cache and compiled files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Logs and temporary files
+logs/
+*.log
+debug.log
+
+# Environment variables and secrets
+.env
+*.env
+
+# Data files
+*.csv
+*.sqlite
+*.db
+*.h5
+
+# Dependency files
+pip-log.txt
+pip-delete-this-directory.txt
+
+# MacOS system files
+.DS_Store
