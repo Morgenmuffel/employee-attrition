@@ -1,0 +1,47 @@
+numpy
+pandas
+protobuf
+python_dateutil==2.8.2
+Requests
+scikit_learn
+scikit_survival
+setuptools
+streamlit
+shap
+seaborn
+matplotlib
+plotly.express
+wheel
+nbresult
+colorama
+ipdb
+ipykernel
+yapf
+matplotlib
+pygeohash
+pytest
+seaborn
+
+
+google-cloud-bigquery
+google-cloud-storage==2.14.0
+google-api-core==2.8.2
+googleapis-common-protos==1.56.4
+protobuf==3.19.6
+h5py==3.10.0
+db-dtypes
+pyarrow
+
+# prevent bq 3+ db-dtypes package error when running training from bq
+mlflow==2.1.1
+prefect==2.19.2
+mlflow_skinny
+python-dotenv
+
+# API
+fastapi==0.108.0
+pytz
+uvicorn
+# tests
+httpx<0.28
+pytest-asyncio
