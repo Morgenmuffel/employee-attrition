@@ -1,0 +1,30 @@
+pytest
+pylint
+ipdb
+jupyterlab
+notebook
+numpy
+pandas
+
+scikit-learn
+ipdb
+google-cloud-bigquery
+google-cloud-storage
+mlflow
+
+### NLP ###
+nltk
+
+
+### STREAMLIT ###
+streamlit
+python-multipart
+openpyxl
+gcsfs
+
+#### API ###
+
+uvicorn
+fastapi
+colorama
+pytz

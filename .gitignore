@@ -1,6 +1,6 @@
 nltk_data/*
 raw_data/*
-employee_churn/training_outputs/*
+employee_attrition/training_outputs/*
 .env
 .envrc
 
