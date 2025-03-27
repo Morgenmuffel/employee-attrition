@@ -20,7 +20,7 @@ def get_data():
     if params.DATA_TARGET == 'gcs':
         # data_tuple = get_data_from_gcs()[1]
         # breakpoint()
-        # data_events_ppl, data_scraped = data_tuple[0], data_tuple[1]
+
         print(Fore.BLUE + f"\nLoad latest data files from GCS..." + Style.RESET_ALL)
 
         bucket_name = params.BUCKET_NAME
@@ -82,54 +82,65 @@ def save_data_to_gcs(
     ):
 
     '''
-    Save the cleaned version of data in google cloud storage to make it available to Dashboard
+    Save the processed version of data in google cloud storage to make it available to Dashboard
     '''
     client = storage.Client()
     bucket = client.bucket(params.BUCKET_NAME)
 
     try:
         # Convert DataFrame to CSV format in memory
-        cleaned_buffer_ml = BytesIO()
-        cleaned_data.to_csv(cleaned_buffer_ml, index=False)
+        cleaned_data_buffer = BytesIO()
+        cleaned_df.to_csv(cleaned_data_buffer, index=False)
+
+        feature_importance_buffer = BytesIO()
+        feature_importance_df.to_csv(feature_importance_buffer, index=False)
+
+        survival_data_buffer = BytesIO()
+        survival_df.to_csv(survival_data_buffer, index=False)
 
 
         # Specify the bucket name and CSV file path in GCS | Used in printing only
-        # gcsfile_name_ml = f'gs://{params.BUCKET_NAME}/{params.CLEANED_FILE_ML}'
-        # gcsfile_name_analytics = f'gs://{params.BUCKET_NAME}/{params.CLEANED_FILE_ANALYTICS}'
+        gcsfile_name_cleaned = f'gs://{params.BUCKET_NAME}/{params.CLEANED_DATA}'
+        gcsfile_name_feature_imp = f'gs://{params.BUCKET_NAME}/{params.FEATURE_IMPORTANCE_DATA}'
+        gcsfile_name_survival = f'gs://{params.BUCKET_NAME}/{params.SURVIVAL_DATA}'
 
-        # # Create a Blob object and upload the CSV data
-        # blob_ml = bucket.blob(params.CLEANED_FILE_ML)
-        # blob_ml.upload_from_string(csv_buffer_ml.getvalue(), content_type='text/csv')
+        # Create a Blob object and upload the CSV data
+        blob_cleaned = bucket.blob(params.CLEANED_DATA)
+        blob_cleaned.upload_from_string(cleaned_data_buffer.getvalue(), content_type='text/csv')
 
-        # blob_analysis = bucket.blob(params.CLEANED_FILE_ANALYTICS)
-        # blob_analysis.upload_from_string(csv_buffer_analysis.getvalue(), content_type='text/csv')
+        blob_feature_imp = bucket.blob(params.FEATURE_IMPORTANCE_DATA)
+        blob_feature_imp.upload_from_string(feature_importance_buffer.getvalue(), content_type='text/csv')
 
-    #     print(f"DataFrame successfully written to '{gcsfile_name_ml}'")
-    #     print(f"DataFrame successfully written to '{gcsfile_name_analytics}'")
+        blob_survival = bucket.blob(params.SURVIVAL_DATA)
+        blob_survival.upload_from_string(survival_data_buffer.getvalue(), content_type='text/csv')
 
-    #     return True, "OK"
+        print(f"cleaned_df successfully written to '{gcsfile_name_cleaned}'")
+        print(f"feature_importance_df successfully written to '{gcsfile_name_feature_imp}'")
+        print(f"survival_df successfully written to '{gcsfile_name_survival}'")
 
-    # except Exception as e:
-    #     print(f"\n❌ No files saved in GCS bucket {bucket}")
+        return True, "OK"
 
-    #     return False, e
+    except Exception as e:
+        print(f"\n❌ No files saved in GCS bucket {bucket}")
+        return False, e
 
 
 def get_clean_data_from_gcs():
     '''
     This method will read the latest cleaned csv data from google cloud storage |
     '''
-    print(Fore.BLUE + f"\nLoad latest cleaned data files needed for model from GCS..." + Style.RESET_ALL)
+    # print(Fore.BLUE + f"\nLoad latest cleaned data files needed for model from GCS..." + Style.RESET_ALL)
 
-    bucket_name = params.BUCKET_NAME
-    gsfile_clean_data_ml = f'gs://{bucket_name}/{params.CLEANED_FILE_ML}'
+    # bucket_name = params.BUCKET_NAME
+    # gsfile_clean_data_ml = f'gs://{bucket_name}/{params.CLEANED_FILE_ML}'
 
-    try:
-        data_ml = pd.read_csv(gsfile_clean_data_ml)
-        print("✅ Latest clean ml file loaded from cloud storage")
+    # try:
+    #     data_ml = pd.read_csv(gsfile_clean_data_ml)
+    #     print("✅ Latest clean ml file loaded from cloud storage")
 
-        return (True, data_ml)
-    except FileNotFoundError as e:
-        print(f"\n❌ No clean ML file found in GCS bucket {bucket_name}")
-        print(f"File {gsfile_clean_data_ml} not found in bucket {bucket_name}")
-        return (False, e)
+    #     return (True, data_ml)
+    # except FileNotFoundError as e:
+    #     print(f"\n❌ No clean ML file found in GCS bucket {bucket_name}")
+    #     print(f"File {gsfile_clean_data_ml} not found in bucket {bucket_name}")
+    #     return (False, e)
+    pass

@@ -11,18 +11,23 @@ GCP_REGION = os.environ.get("GCP_REGION")
 BQ_DATASET = os.environ.get("BQ_DATASET")
 BQ_REGION = os.environ.get("BQ_REGION")
 BUCKET_NAME = os.environ.get("BUCKET_NAME")
-RAW_DATA = os.environ.get("RAW_DATA")
-CLEANED_DATA_ML = os.environ.get("CLEANED_FILE_ML")
-CLEANED_DATA_ANALYTICS = os.environ.get("CLEANED_FILE_ANALYTICS")
 INSTANCE = os.environ.get("INSTANCE")
 
-# MLFLOW_TRACKING_URI = os.environ.get("MLFLOW_TRACKING_URI")
-# MLFLOW_EXPERIMENT = os.environ.get("MLFLOW_EXPERIMENT")
-# MLFLOW_MODEL_NAME = os.environ.get("MLFLOW_MODEL_NAME")
-# Model Lifecycle
+RAW_DATA = os.environ.get("RAW_DATA")
+CLEANED_DATA = os.environ.get("CLEANED_DATA")
+FEATURE_IMPORTANCE_DATA = os.environ.get("FEATURE_IMPORTANCE_DATA")
+SURVIVAL_DATA = os.environ.get("SURVIVAL_DATA")
+
+
+##################  MODEL LIFECYCLE  #####################
+
 MLFLOW_TRACKING_URI='https://mlflow.lewagon.ai'
 MLFLOW_EXPERIMENT='employee_attrition_experiment_sydd'
 MLFLOW_MODEL_NAME='employee_attrition_experiment_sydd'
+PREFECT_FLOW_NAME = os.environ.get("PREFECT_FLOW_NAME")
+PREFECT_LOG_LEVEL = os.environ.get("PREFECT_LOG_LEVEL")
+GAR_IMAGE = os.environ.get("GAR_IMAGE")
+GAR_MEMORY = os.environ.get("GAR_MEMORY")
 
 ##################  CONSTANTS  #####################
 
