@@ -4,9 +4,6 @@ reinstall_package:
 	@pip uninstall -y employee_attrition || :
 	@pip install -e .
 
-run_preprocess:
-	python -c 'from employee_attrition.interface.main import preprocess; preprocess()'
-
 
 run_train:
 	python -c 'from employee_attrition.interface.main import train; train()'
@@ -22,16 +19,16 @@ clean:
 	@rm -f .coverage
 	@rm -fr */__pycache__ */*.pyc __pycache__
 	@rm -fr build dist
-	@rm -fr data_bpm-*.dist-info
-	@rm -fr data_bpm.egg-info
+	@rm -fr employee_attrition-*.dist-info
+	@rm -fr employee_attrition.egg-info
 
 # run_train -s will train the model and pickle (save) it
-# run_train_cluster:
-# python -c 'from data_bpm.interface.main import train; train(save_model=True if "-s" in "$(MAKEFLAGS)" else False)'
- 	# python -c 'from data_bpm.interface.main import train; train()'
+# run_train:
+# python -c 'from employee_attrition.interface.main import train; train(save_model=True if "-s" in "$(MAKEFLAGS)" else False)'
+ 	# python -c 'from employee_attrition.interface.main import train; train()'
 
-# run_train_classification:
-# python -c 'from data_bpm.interface.main import train_model2; train_model2(save=True)'
+run_train_select:
+  python -c 'from employee_attrition.interface.main import train_model_with_selection; train_model_with_selection(save=True)'
 
 
 ################### LOCAL REGISTRY ################

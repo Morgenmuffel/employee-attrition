@@ -4,7 +4,7 @@ import os.path as Path
 
 from colorama import Fore, Style
 
-from employee_attrition.ml_logic.data import get_data, save_data_to_gcs
+from employee_attrition.ml_logic.data import get_data, save_data, get_processed_data, get_processed_data_from_gcs
 from employee_attrition.ml_logic.registry import load_model, save_model
 from employee_attrition.ml_logic.model import train_model
 from employee_attrition import params
@@ -13,7 +13,7 @@ from employee_attrition import params
 from sksurv.util import Surv
 
 
-def train(save=False):
+def train(save=True):
     """
     - Get the raw data
     - Train the Survival Analysis model on the preprocessed dataset
@@ -30,19 +30,34 @@ def train(save=False):
     # Split into structured target for survival analysis and features
     X = raw_data.drop(columns=['Attrition', 'YearsAtCompany'])
     y = Surv.from_arrays(event=raw_data["Attrition"] == 1, time=raw_data["YearsAtCompany"])
-    # Train model using `model.py`
-    pipeline = load_model()
 
-    if pipeline is None:
-        print(Fore.BLUE + "\n Training the model.." + Style.RESET_ALL)
-        pipeline = train_model(X,y)
+    print(Fore.BLUE + "\n Training the model.." + Style.RESET_ALL)
+    pipeline = train_model(X,y)
 
-        # Save model
-        if save == True:
-            save_model(pipeline)
-            # Save resuts
-            # Saving the clusters returned by the model in the original raw ml_data
-            save_results(raw_ml_data, model.labels_)
+    # Extract feature importances from the model
+    feature_importances = pipeline.named_steps['model'].feature_importances_
+    preprocessor = pipeline.named_steps['preprocessor']
+    transformed_feature_names = preprocessor.get_feature_names_out()
+    # Sort and plot feature importance
+    feature_importance_df = pd.DataFrame({'Feature': transformed_feature_names, 'Importance': feature_importances})
+    feature_importance_df = feature_importance_df.sort_values(by='Importance', ascending=False)
+
+    # Filter df to include only employees who haven't quit (Attrition == 0)
+    active_df = raw_data[raw_data['Attrition'] == 0]
+    risk_score_df = active_df.drop(columns=['Attrition', 'YearsAtCompany'])
+    # Add the predicted risk scores to the DataFrame
+    risk_score_df['PredictedRisk'] = pipeline.predict(risk_score_df)
+    # Get back the YearsAtCompany for the employees who haven't quit
+    risk_score_df['YearsAtCompany'] = active_df['YearsAtCompany']
+
+    # Sort by predicted risk (highest risk first)
+    risk_score_df = risk_score_df.sort_values(by='PredictedRisk', ascending=False)
+
+    # Save model and data
+    if save == True:
+        save_model(pipeline)
+        save_data(raw_data, feature_importance_df, feature_importance_df)
+
 
 
 def train_model_with_selection(save=False):
@@ -52,36 +67,53 @@ def train_model_with_selection(save=False):
 def evaluate():
     pass
 
-def pred():
+def predict_risk(num_samples=10, max_time=10):
 
     '''
     Predicting the probability of attending the event for a new/existing user
     '''
-    X_pred = pd.read_csv("raw_data/predict.csv")
-    preproc_pipeline = load_preproc_pipeline()
+    pipeline = load_model()
+    if pipeline is None:
+        raise ValueError("Failed to load model. Please check the model source or `load_model()` function.")
 
-    # Commented | As we commented preprocess_features in preprocess method
-    # if preproc_pipeline == None:
-    #     print(Fore.BLUE + "\n Failed to load preproc pipeline \n Preprocessing the raw data.." + Style.RESET_ALL)
-    #     X_processed, y_train = preprocess()
-    #     preproc_pipeline = load_preproc_pipeline()
+    data_loaded, raw_data, feature_importance_df, risk_scores_df = get_processed_data()
 
-    X_pred_process = preproc_pipeline.transform(X_pred)
+    if not data_loaded:
+        raise ValueError("Failed to load processed data. Please check the data source or `get_processed_data()` function.")
 
-    # Train model using `model.py`
-    model = load_model()
+    print(Fore.BLUE + "\n Data successfully loaded for prediction." + Style.RESET_ALL)
+        # Display the top 10 employees at highest risk
+    top_n_high_risk = risk_scores_df.head(num_samples) # type: ignore
+    print(top_n_high_risk[['PredictedRisk']])
 
-    # Predict probability of a person to attend
-    probabilities = model.predict_proba(X_pred_process)
+    # Preprocess the top high-risk employees' data
+    top_n_high_risk_proc = pipeline.named_steps['preprocessor'].transform(top_n_high_risk.drop(columns=['PredictedRisk']))
+    top_n_high_risk_proc = pipeline.named_steps['to_dataframe'].transform(top_n_high_risk_proc)
+    survival_funcs = pipeline.named_steps['model'].predict_survival_function(top_n_high_risk_proc)
 
-    # Get probability of positive result (class 1)
-    positive_probabilities = probabilities[:, 1]
+    # Create a DataFrame to store survival probabilities for the top n high-risk employees
+    survival_data = []
+    # Extract time points and survival probabilities from the survival functions (StepFunction)
+    for i, employee_id in enumerate(top_n_high_risk.index):
+        step_function = survival_funcs[i]  # Get the StepFunction for the current employee
+        time_points = step_function.x  # Time points
+        survival_prob = step_function.y  # Survival probabilities
 
-    print(positive_probabilities)
+        # Add the survival curve to the DataFrame
+        for time, prob in zip(time_points, survival_prob):
+            survival_data.append({
+                'EmployeeNumber': employee_id,
+                'Time': time,
+                'SurvivalProbability': prob
+            })
+
+    # Convert the survival data to a DataFrame
+    survival_df = pd.DataFrame(survival_data)
+    return top_n_high_risk, survival_df
 
 
 if __name__ == '__main__':
     train()
     # train_model2(save=True)
     evaluate()
-    pred()
+    predict_risk()

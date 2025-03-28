@@ -16,19 +16,21 @@ INSTANCE = os.environ.get("INSTANCE")
 RAW_DATA = os.environ.get("RAW_DATA")
 CLEANED_DATA = os.environ.get("CLEANED_DATA")
 FEATURE_IMPORTANCE_DATA = os.environ.get("FEATURE_IMPORTANCE_DATA")
-SURVIVAL_DATA = os.environ.get("SURVIVAL_DATA")
+RISK_SCORE_DATA = os.environ.get("RISK_SCORE_DATA")
 
 
 ##################  MODEL LIFECYCLE  #####################
 
 MLFLOW_TRACKING_URI='https://mlflow.lewagon.ai'
-MLFLOW_EXPERIMENT='employee_attrition_experiment_sydd'
-MLFLOW_MODEL_NAME='employee_attrition_experiment_sydd'
+MLFLOW_EXPERIMENT='employee_attrition_experiment'
+MLFLOW_MODEL_NAME='employee_attrition_pipe'
 PREFECT_FLOW_NAME = os.environ.get("PREFECT_FLOW_NAME")
 PREFECT_LOG_LEVEL = os.environ.get("PREFECT_LOG_LEVEL")
 GAR_IMAGE = os.environ.get("GAR_IMAGE")
 GAR_MEMORY = os.environ.get("GAR_MEMORY")
 
+
+LOCAL_CACHE_DIR  = os.environ.get("LOCAL_CACHE_DIR")
 ##################  CONSTANTS  #####################
 
 # LOCAL_DATA_PATH = os.path.join(os.path.curdir(), "raw_data")

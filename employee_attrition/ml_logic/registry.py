@@ -6,6 +6,7 @@ import pickle
 from colorama import Fore, Style
 from google.cloud import storage
 import mlflow.tracking
+from sklearn.pipeline import Pipeline
 
 from employee_attrition.params import *
 import mlflow
@@ -44,24 +45,26 @@ from mlflow.tracking import MlflowClient
 #     print("✅ Results saved locally")
 
 
-def save_model(model = None) -> None:
+from typing import Optional
+
+def save_model(pipeline: Optional[Pipeline] = None) -> None:
     """
-    Persist trained model locally on the hard drive at f"{LOCAL_REGISTRY_PATH}/models/{timestamp}.h5"
-    - if MODEL_TARGET='gcs', also persist it in your bucket on GCS at "models/{timestamp}.h5" --> unit 02 only
-    - if MODEL_TARGET='mlflow', also persist it on MLflow instead of GCS (for unit 0703 only) --> unit 03 only
+    Persist trained model locally on the hard drive at f"{LOCAL_REGISTRY_PATH}/models/{timestamp}.pkl"
+    - if MODEL_TARGET='gcs', also persist it in your bucket on GCS at "models/{timestamp}.pkl"
+    - if MODEL_TARGET='mlflow', also persist it on MLflow instead of GCS
     """
 
     timestamp = time.strftime("%Y%m%d-%H%M%S")
 
     # Save model locally
-    model_path = os.path.join(LOCAL_REGISTRY_PATH, "models", f"{timestamp}.h5")
-    with open(model_path, 'wb') as f:
-        pickle.dump(model, f)
+    model_path = os.path.join(LOCAL_REGISTRY_PATH, "models", f"{timestamp}.pkl")
 
-    print("✅ Model saved locally")
+    with open(model_path, 'wb') as f:
+        pickle.dump(pipeline, f)
+        print("✅ Model saved locally")
 
     if MODEL_TARGET == "gcs":
-        model_filename = model_path.split("/")[-1] # e.g. "20230208-161047.h5" for instance
+        model_filename = model_path.split("/")[-1]
         client = storage.Client()
         bucket = client.bucket(BUCKET_NAME)
         blob = bucket.blob(f"models/{model_filename}")
@@ -73,7 +76,7 @@ def save_model(model = None) -> None:
 
     if MODEL_TARGET == "mlflow":
         mlflow.sklearn.log_model(
-            sk_model=model,  # Sklearn model
+            sk_model=pipeline,  # Sklearn model
             artifact_path="model",  # Artifact path within the run
             registered_model_name=MLFLOW_MODEL_NAME,  # Registered model name
         )

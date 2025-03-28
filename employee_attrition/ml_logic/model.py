@@ -98,7 +98,7 @@ def train_model(
 
     print(f"✅ Model trained with Concordance Index: {c_index[0]}")
 
-    return model
+    return pipeline
 
 # implement model selection
 # def train_model_2(
