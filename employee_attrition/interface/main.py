@@ -4,7 +4,7 @@ import os.path as Path
 
 from colorama import Fore, Style
 
-from employee_attrition.ml_logic.data import get_data, save_data, get_processed_data, get_processed_data_from_gcs
+from employee_attrition.ml_logic.data import get_data, save_data, get_processed_data
 from employee_attrition.ml_logic.registry import load_model, save_model
 from employee_attrition.ml_logic.model import train_model
 from employee_attrition import params
@@ -56,7 +56,7 @@ def train(save=True):
     # Save model and data
     if save == True:
         save_model(pipeline)
-        save_data(raw_data, feature_importance_df, feature_importance_df)
+        save_data(raw_data, feature_importance_df, risk_score_df)
 
 
 
@@ -67,22 +67,8 @@ def train_model_with_selection(save=False):
 def evaluate():
     pass
 
-def predict_risk(num_samples=10, max_time=10):
-
-    '''
-    Predicting the probability of attending the event for a new/existing user
-    '''
-    pipeline = load_model()
-    if pipeline is None:
-        raise ValueError("Failed to load model. Please check the model source or `load_model()` function.")
-
-    data_loaded, raw_data, feature_importance_df, risk_scores_df = get_processed_data()
-
-    if not data_loaded:
-        raise ValueError("Failed to load processed data. Please check the data source or `get_processed_data()` function.")
-
-    print(Fore.BLUE + "\n Data successfully loaded for prediction." + Style.RESET_ALL)
-        # Display the top 10 employees at highest risk
+def predict_risk_on_data(pipeline, risk_scores_df,num_samples=10, max_time=10):
+    # Display the top 10 employees at highest risk
     top_n_high_risk = risk_scores_df.head(num_samples) # type: ignore
     print(top_n_high_risk[['PredictedRisk']])
 
@@ -110,6 +96,24 @@ def predict_risk(num_samples=10, max_time=10):
     # Convert the survival data to a DataFrame
     survival_df = pd.DataFrame(survival_data)
     return top_n_high_risk, survival_df
+
+def predict_risk(num_samples=10, max_time=10):
+
+    '''
+    Get survival curves for the top n high-risk employees
+    '''
+    pipeline = load_model()
+    if pipeline is None:
+        raise ValueError("Failed to load model. Please check the model source or `load_model()` function.")
+
+    data_loaded, raw_data, feature_importance_df, risk_scores_df = get_processed_data() # type: ignore
+
+    if not data_loaded:
+        raise ValueError("Failed to load processed data. Please check the data source or `get_processed_data()` function.")
+
+    print(Fore.BLUE + "\n Data successfully loaded for prediction." + Style.RESET_ALL)
+
+    return predict_risk_on_data(pipeline, risk_scores_df, num_samples, max_time)
 
 
 if __name__ == '__main__':

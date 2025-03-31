@@ -5,13 +5,11 @@ import pickle
 
 from colorama import Fore, Style
 from google.cloud import storage
-import mlflow.tracking
 from sklearn.pipeline import Pipeline
 
 from employee_attrition.params import *
 import mlflow
 import mlflow.sklearn
-import mlflow.tracking
 from mlflow.tracking import MlflowClient
 
 # def save_results(params: dict, metrics: dict) -> None:
@@ -57,18 +55,22 @@ def save_model(pipeline: Optional[Pipeline] = None) -> None:
     timestamp = time.strftime("%Y%m%d-%H%M%S")
 
     # Save model locally
-    model_path = os.path.join(LOCAL_REGISTRY_PATH, "models", f"{timestamp}.pkl")
+    model_path = os.path.join(LOCAL_REGISTRY_PATH, "models")
+    model_filename = f"{timestamp}.pkl"
+    full_model_path = os.path.join(model_path, model_filename)
 
-    with open(model_path, 'wb') as f:
+    if not os.path.exists(model_path):
+        os.makedirs(model_path)
+
+    with open(full_model_path, 'wb') as f:
         pickle.dump(pipeline, f)
         print("✅ Model saved locally")
 
     if MODEL_TARGET == "gcs":
-        model_filename = model_path.split("/")[-1]
         client = storage.Client()
         bucket = client.bucket(BUCKET_NAME)
         blob = bucket.blob(f"models/{model_filename}")
-        blob.upload_from_filename(model_path)
+        blob.upload_from_filename(full_model_path)
 
         print("✅ Model saved to GCS")
 
@@ -148,7 +150,7 @@ def load_model(stage="Production"):
 
         # Load model from MLflow
         model = None
-        mlflow.tracking.set_tracking_uri(MLFLOW_TRACKING_URI)
+        mlflow.set_tracking_uri(MLFLOW_TRACKING_URI) # type: ignore
         client = MlflowClient()
 
         try:
@@ -175,7 +177,7 @@ def mlflow_transition_model(current_stage: str, new_stage: str) -> None:
     Transition the latest model from the `current_stage` to the
     `new_stage` and archive the existing model in `new_stage`
     """
-    mlflow.tracking.set_tracking_uri(MLFLOW_TRACKING_URI)
+    mlflow.set_tracking_uri(MLFLOW_TRACKING_URI) # type: ignore
 
     client = MlflowClient()
 

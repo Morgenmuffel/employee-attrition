@@ -8,8 +8,10 @@ reinstall_package:
 run_train:
 	python -c 'from employee_attrition.interface.main import train; train()'
 
-run_pred:
-	python -c 'from employee_attrition.interface.main import pred; pred()'
+NUM_SAMPLES = 10
+
+run_predict:
+	python -c 'from employee_attrition.interface.main import predict_risk; predict_risk(num_samples=$(NUM_SAMPLES))'
 
 run_evaluate:
 	python -c 'from employee_attrition.interface.main import evaluate; evaluate()'

@@ -16,7 +16,7 @@ def get_data():
     df_raw = pd.DataFrame()
 
     # Get Data from Goggle Cloud Storage
-    if params.DATA_TARGET == 'gcs':
+    if params.DATA_SOURCE == 'gcs':
         # data_tuple = get_data_from_gcs()[1]
         # breakpoint()
 
@@ -32,7 +32,7 @@ def get_data():
         except Exception as e:
             print(f"Error in reading files from GCS, {e}")
 
-    elif params.DATA_TARGET == 'local':
+    elif params.DATA_SOURCE == 'local':
         print(Fore.BLUE + "\nLoad data from local CSV..." + Style.RESET_ALL)
 
         # Get Local Data
@@ -41,7 +41,7 @@ def get_data():
         df_raw = pd.read_csv(Path.join(params.LOCAL_CACHE_DIR,params.RAW_DATA))
 
     else:
-        print(Fore.RED + "\nMODEL_TARGET not set, exiting" + Style.RESET_ALL)
+        print(Fore.RED + "\nDATA_TARGET not set, exiting" + Style.RESET_ALL)
         return None
 
     # breakpoint()
@@ -83,9 +83,9 @@ def save_data(
     '''
     if params.DATA_TARGET == 'local':
         print(Fore.BLUE + "\n Saving processed data locally.." + Style.RESET_ALL)
-        cleaned_df.to_csv(f'raw_data/{params.CLEANED_DATA}')
+        cleaned_df.to_csv(f'raw_data/{params.CLEANED_DATA}', index=True)
         feature_importance_df.to_csv(f'raw_data/{params.FEATURE_IMPORTANCE_DATA}')
-        risk_score_df.to_csv(f'raw_data/{params.RISK_SCORE_DATA}')
+        risk_score_df.to_csv(f'raw_data/{params.RISK_SCORE_DATA}', index=True)
     elif params.DATA_TARGET == 'gcs':
         print(Fore.BLUE + "\n Saving processed data to the gcs.." + Style.RESET_ALL)
         save_data_to_gcs(cleaned_df,  feature_importance_df, risk_score_df)
@@ -105,13 +105,13 @@ def save_data_to_gcs(
     try:
         # Convert DataFrame to CSV format in memory
         cleaned_data_buffer = BytesIO()
-        cleaned_df.to_csv(cleaned_data_buffer, index=False)
+        cleaned_df.to_csv(cleaned_data_buffer, index=True)
 
         feature_importance_buffer = BytesIO()
-        feature_importance_df.to_csv(feature_importance_buffer, index=False)
+        feature_importance_df.to_csv(feature_importance_buffer)
 
         survival_data_buffer = BytesIO()
-        risk_score_df.to_csv(survival_data_buffer, index=False)
+        risk_score_df.to_csv(survival_data_buffer, index=True)
 
 
         # Specify the bucket name and CSV file path in GCS | Used in printing only
@@ -157,7 +157,7 @@ def get_processed_data_from_gcs():
         # Get cleaned data
         blob_cleaned = bucket.blob(params.CLEANED_DATA)
         cleaned_data = blob_cleaned.download_as_string()
-        cleaned_df = pd.read_csv(BytesIO(cleaned_data))
+        cleaned_df = pd.read_csv(BytesIO(cleaned_data), index_col='EmployeeNumber')
 
         # Get feature importance data
         blob_feature_imp = bucket.blob(params.FEATURE_IMPORTANCE_DATA)
@@ -167,7 +167,7 @@ def get_processed_data_from_gcs():
         # Get risk score data
         blob_survival = bucket.blob(params.RISK_SCORE_DATA)
         risk_score_data = blob_survival.download_as_string()
-        risk_score_df = pd.read_csv(BytesIO(risk_score_data))
+        risk_score_df = pd.read_csv(BytesIO(risk_score_data), index_col='EmployeeNumber')
 
         print("Successfully retrieved all data from GCS")
         return True, cleaned_df, feature_importance_df, risk_score_df
@@ -189,33 +189,40 @@ def get_processed_data():
     feature_importance_df = None
     risk_score_df = None
 
-    if params.RAW_DATA is None or params.LOCAL_CACHE_DIR is None:
-        raise ValueError("LOCAL_CACHE_DIR/RAW_DATA parameter is not set in params.")
-    local_cache_dir = Path.join(params.LOCAL_CACHE_DIR,params.RAW_DATA)
 
-    # Ensure cache directory exists
-    if not Path.exists(local_cache_dir) or not local_cache_dir:
-        raise ValueError("Cache directory does not exist.")
-    else:
-        try:
-            # Define local file paths
-            local_cleaned_path = Path.join(local_cache_dir, params.CLEANED_DATA) # type: ignore
-            local_feature_imp_path = Path.join(local_cache_dir, params.FEATURE_IMPORTANCE_DATA) # type: ignore
-            local_risk_score_path = Path.join(local_cache_dir, params.RISK_SCORE_DATA) # type: ignore
+    if params.DATA_TARGET == 'local':
 
-            # Check if all files exist
-            if (Path.exists(local_cleaned_path) and \
-                Path.exists(local_feature_imp_path) and \
-                Path.exists(local_risk_score_path)):
+        if params.LOCAL_CACHE_DIR is None:
+            raise ValueError("/RAW_DATA parameter is not set in params.")
 
-                cleaned_df = pd.read_csv(local_cleaned_path)
-                feature_importance_df = pd.read_csv(local_feature_imp_path)
-                risk_score_df = pd.read_csv(local_risk_score_path)
-                data_loaded = True
-                print("✅ Successfully loaded all data from local cache")
 
-        except Exception as e:
-            print(f"⚠️ Error reading local cache files: {e}")
-            raise ValueError("Error reading local cache files")
+        print(Fore.RED + "\nLoad processed data from local cache " + params.LOCAL_CACHE_DIR + Style.RESET_ALL)
+        # Ensure cache directory exists
+        if not Path.exists(params.LOCAL_CACHE_DIR):
+            raise ValueError("Cache directory does not exist.")
+        else:
+            try:
+                # Define local file paths
+                local_cleaned_path = Path.join(params.LOCAL_CACHE_DIR, params.CLEANED_DATA) # type: ignore
+                local_feature_imp_path = Path.join(params.LOCAL_CACHE_DIR, params.FEATURE_IMPORTANCE_DATA) # type: ignore
+                local_risk_score_path = Path.join(params.LOCAL_CACHE_DIR, params.RISK_SCORE_DATA) # type: ignore
 
-    return data_loaded, cleaned_df, feature_importance_df, risk_score_df
+                # Check if all files exist
+                if (Path.exists(local_cleaned_path) and \
+                    Path.exists(local_feature_imp_path) and \
+                    Path.exists(local_risk_score_path)):
+
+                    cleaned_df = pd.read_csv(local_cleaned_path, index_col='EmployeeNumber')
+                    feature_importance_df = pd.read_csv(local_feature_imp_path)
+                    risk_score_df = pd.read_csv(local_risk_score_path, index_col='EmployeeNumber')
+                    data_loaded = True
+                    print("✅ Successfully loaded all data from local cache")
+
+            except Exception as e:
+                print(f"⚠️ Error reading local cache files: {e}")
+                raise ValueError("Error reading local cache files")
+
+        return data_loaded, cleaned_df, feature_importance_df, risk_score_df
+
+    elif params.DATA_TARGET == 'gcs':
+        return get_processed_data_from_gcs()

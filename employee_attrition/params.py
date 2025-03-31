@@ -3,6 +3,7 @@ import numpy as np
 
 MODEL_TARGET = os.environ.get("MODEL_TARGET")
 DATA_TARGET = os.environ.get("DATA_TARGET")
+DATA_SOURCE = os.environ.get("DATA_SOURCE")
 
 ##################  GCP VARIABLES  ##################
 GCP_PROJECT = os.environ.get("GCP_PROJECT")
@@ -13,6 +14,8 @@ BQ_REGION = os.environ.get("BQ_REGION")
 BUCKET_NAME = os.environ.get("BUCKET_NAME")
 INSTANCE = os.environ.get("INSTANCE")
 
+
+##################  DATA FILES  ##################
 RAW_DATA = os.environ.get("RAW_DATA")
 CLEANED_DATA = os.environ.get("CLEANED_DATA")
 FEATURE_IMPORTANCE_DATA = os.environ.get("FEATURE_IMPORTANCE_DATA")
