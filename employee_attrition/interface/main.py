@@ -67,8 +67,9 @@ def train_model_with_selection(save=False):
 def evaluate():
     pass
 
-def predict_risk_on_data(pipeline, risk_scores_df,num_samples=10, max_time=10):
-    # Display the top 10 employees at highest risk
+def predict_curves_on_data(pipeline, risk_scores_df,num_samples=None, max_time=10):
+    if num_samples is None or num_samples > len(risk_scores_df):
+        num_samples = len(risk_scores_df)
     top_n_high_risk = risk_scores_df.head(num_samples) # type: ignore
     print(top_n_high_risk[['PredictedRisk']])
 
@@ -95,7 +96,7 @@ def predict_risk_on_data(pipeline, risk_scores_df,num_samples=10, max_time=10):
 
     # Convert the survival data to a DataFrame
     survival_df = pd.DataFrame(survival_data)
-    return top_n_high_risk, survival_df
+    return top_n_high_risk_proc, survival_df
 
 def predict_risk(num_samples=10, max_time=10):
 
@@ -113,7 +114,7 @@ def predict_risk(num_samples=10, max_time=10):
 
     print(Fore.BLUE + "\n Data successfully loaded for prediction." + Style.RESET_ALL)
 
-    return predict_risk_on_data(pipeline, risk_scores_df, num_samples, max_time)
+    return predict_curves_on_data(pipeline, risk_scores_df, num_samples, max_time)
 
 
 if __name__ == '__main__':

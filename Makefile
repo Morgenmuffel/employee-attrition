@@ -32,6 +32,12 @@ clean:
 run_train_select:
   python -c 'from employee_attrition.interface.main import train_model_with_selection; train_model_with_selection(save=True)'
 
+run_workflow:
+	PREFECT__LOGGING__LEVEL=${PREFECT_LOG_LEVEL} python -m taxifare.interface.workflow
+
+run_api:
+	uvicorn employee_attrition.api.fast:app --reload
+
 
 ################### LOCAL REGISTRY ################
 

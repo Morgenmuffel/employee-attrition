@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import json
 from employee_attrition.ml_logic.registry import load_model
 # from employee_attrition.ml_logic.data import get_data, save_data_to_gcs, get_processed_data
-from employee_attrition.interface.main import  predict_risk_on_data #train_model
+from employee_attrition.interface.main import  predict_curves_on_data #train_model
 from employee_attrition import params
 
 app = FastAPI()
@@ -43,7 +43,7 @@ def predict_risk(request: RiskRequest = Body(...)):
         if len(risk_scores_df) == 0:
             raise HTTPException(status_code=400, detail="Empty DataFrame received")
 
-        top_n_high_risk, survival_df = predict_risk_on_data(app.state.model, risk_scores_df, request.num_samples)
+        top_n_high_risk, survival_df = predict_curves_on_data(app.state.model, risk_scores_df, request.num_samples)
 
         return {
             "top_n_high_risk": top_n_high_risk.to_dict("records"),
