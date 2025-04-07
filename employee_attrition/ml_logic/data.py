@@ -105,12 +105,15 @@ def save_data_to_gcs(
     try:
         # Convert DataFrame to CSV format in memory
         cleaned_data_buffer = BytesIO()
+        cleaned_df.columns = cleaned_df.columns.str.strip().str.replace(r'[\n\r]', '', regex=True)
         cleaned_df.to_csv(cleaned_data_buffer, index=True)
 
         feature_importance_buffer = BytesIO()
+        feature_importance_df.columns = feature_importance_df.columns.str.strip().str.replace(r'[\n\r]', '', regex=True)
         feature_importance_df.to_csv(feature_importance_buffer)
 
         survival_data_buffer = BytesIO()
+        risk_score_df.columns = risk_score_df.columns.str.strip().str.replace(r'[\n\r]', '', regex=True)
         risk_score_df.to_csv(survival_data_buffer, index=True)
 
 

@@ -2,6 +2,7 @@ import glob
 import os
 import time
 import pickle
+import tempfile
 
 from colorama import Fore, Style
 from google.cloud import storage
@@ -53,24 +54,26 @@ def save_model(pipeline: Optional[Pipeline] = None) -> None:
     """
 
     timestamp = time.strftime("%Y%m%d-%H%M%S")
+    model_filename = f"{timestamp}.pkl"
 
     # Save model locally
-    model_path = os.path.join(LOCAL_REGISTRY_PATH, "models")
-    model_filename = f"{timestamp}.pkl"
-    full_model_path = os.path.join(model_path, model_filename)
+    if MODEL_TARGET == "local":
+        model_path = os.path.join(LOCAL_REGISTRY_PATH, "models")
+        full_model_path = os.path.join(model_path, model_filename)
 
-    if not os.path.exists(model_path):
-        os.makedirs(model_path)
+        if not os.path.exists(model_path):
+            os.makedirs(model_path)
 
-    with open(full_model_path, 'wb') as f:
-        pickle.dump(pipeline, f)
-        print("✅ Model saved locally")
+        with open(full_model_path, 'wb') as f:
+            pickle.dump(pipeline, f)
+            print("✅ Model saved locally")
+        return None
 
     if MODEL_TARGET == "gcs":
         client = storage.Client()
         bucket = client.bucket(BUCKET_NAME)
         blob = bucket.blob(f"models/{model_filename}")
-        blob.upload_from_filename(full_model_path)
+        blob.upload_from_string(pickle.dumps(pipeline))
 
         print("✅ Model saved to GCS")
 
@@ -102,71 +105,59 @@ def load_model(stage="Production"):
     """
 
     if MODEL_TARGET == "local":
-        print(Fore.BLUE + f"\nLoad latest model from local registry..." + Style.RESET_ALL)
+        model_path = os.path.join(LOCAL_REGISTRY_PATH, "models")
 
-        # Get the latest model version name by the timestamp on disk
-        local_model_directory = os.path.join(LOCAL_REGISTRY_PATH, "models")
-        local_model_paths = glob.glob(f"{local_model_directory}/*")
+        # Get all model files and sort by creation time
+        model_files = glob.glob(f"{model_path}/*.pkl")
 
-        if not local_model_paths:
+        if not model_files:
+            print("❌ No model found locally")
             return None
 
-        most_recent_model_path_on_disk = sorted(local_model_paths)[-1]
+        # Get most recent model
+        latest_model_path = max(model_files, key=os.path.getctime)
 
-        print(Fore.BLUE + f"\nLoad latest model from disk..." + Style.RESET_ALL)
+        with open(latest_model_path, 'rb') as f:
+            pipeline = pickle.load(f)
+            print(f"✅ Model loaded from local disk: {latest_model_path}")
+            return pipeline
 
-        # Load model from disk using pickle
-        with open(most_recent_model_path_on_disk, 'rb') as f:
-            latest_model = pickle.load(f)
+    elif MODEL_TARGET == "gcs":
 
-        print("✅ Model loaded from local disk")
+        client = storage.Client()
+        bucket = client.bucket(BUCKET_NAME)
+        blobs = list(bucket.list_blobs(prefix="models/"))
 
-        return latest_model
-
-    # elif MODEL_TARGET == "gcs":
-
-    #     print(Fore.BLUE + f"\nLoad latest model from GCS..." + Style.RESET_ALL)
-
-    #     client = storage.Client()
-    #     blobs = list(client.get_bucket(BUCKET_NAME).list_blobs(prefix="model"))
-
-    #     try:
-    #         latest_blob = max(blobs, key=lambda x: x.updated)
-    #         latest_model_path_to_save = os.path.join(LOCAL_REGISTRY_PATH, latest_blob.name)
-    #         latest_blob.download_to_filename(latest_model_path_to_save)
-
-    #         latest_model = keras.models.load_model(latest_model_path_to_save)
-
-    #         print("✅ Latest model downloaded from cloud storage")
-
-    #         return latest_model
-    #     except:
-    #         print(f"\n❌ No model found in GCS bucket {BUCKET_NAME}")
-
-    #         return None
-
-    elif MODEL_TARGET == "mlflow":
-        print(Fore.BLUE + f"\nLoad [{stage}] model from MLflow..." + Style.RESET_ALL)
-
-        # Load model from MLflow
-        model = None
-        mlflow.set_tracking_uri(MLFLOW_TRACKING_URI) # type: ignore
-        client = MlflowClient()
+        if not blobs:
+            print("❌ No model found in GCS")
+            return None
 
         try:
-            model_versions = client.get_latest_versions(name=MLFLOW_MODEL_NAME, stages=[stage])
-            model_uri = model_versions[0].source
+            # Get most recent model
+            latest_blob = max(blobs, key=lambda x: x.time_created)
 
-            assert model_uri is not None
+            # Download the model to a temporary file
+            with tempfile.NamedTemporaryFile() as temp_file:
+                latest_blob.download_to_filename(temp_file.name)
+                pipeline = pickle.load(open(temp_file.name, 'rb'))
+
+            print(f"✅ Model loaded from GCS: {latest_blob.name}")
+            return pipeline
         except:
-            print(f"\n❌ No model found with name {MLFLOW_MODEL_NAME} in stage {stage}")
+            print(f"\n❌ No model found in GCS bucket {BUCKET_NAME}")
 
             return None
 
-        model = mlflow.sklearn.load_model(model_uri)
-
-        print("✅ Model loaded from MLflow")
-        return model
+    elif MODEL_TARGET == "mlflow":
+        # Load model from MLflow
+        model_uri = f"models:/{MLFLOW_MODEL_NAME}/{stage}"
+        try:
+            pipeline = mlflow.sklearn.load_model(model_uri)
+            print(f"✅ Model loaded from MLflow (stage: {stage})")
+            return pipeline
+        except Exception as e:
+            print(f"❌ No model found in MLflow: {e}")
+            return None
     else:
         return None
 

@@ -67,14 +67,27 @@ def train_model_with_selection(save=False):
 def evaluate():
     pass
 
-def predict_curves_on_data(pipeline, risk_scores_df,num_samples=None, max_time=10):
-    if num_samples is None or num_samples > len(risk_scores_df):
-        num_samples = len(risk_scores_df)
-    top_n_high_risk = risk_scores_df.head(num_samples) # type: ignore
-    print(top_n_high_risk[['PredictedRisk']])
+def predict_risk_on_data(pipeline, hr_data):
+    """
+    Predict risk scores for the given HR data using the trained pipeline.
+    """
+    # Preprocess the input data
+    hr_data = hr_data.drop(columns=['Attrition', 'YearsAtCompany'], errors='ignore')
+    hr_data_proc = pipeline.named_steps['preprocessor'].transform(hr_data)
+    hr_data_proc = pipeline.named_steps['to_dataframe'].transform(hr_data_proc)
+
+    # Predict risk scores
+    risk_scores = pipeline.predict(hr_data_proc)
+
+    return risk_scores
+
+def get_surv_curves_on_data(pipeline, hr_data, num_samples=None, max_time=10):
+    if num_samples is None or num_samples > len(hr_data):
+        num_samples = len(hr_data)
+    top_n_high_risk = hr_data.head(num_samples) # type: ignore
 
     # Preprocess the top high-risk employees' data
-    top_n_high_risk_proc = pipeline.named_steps['preprocessor'].transform(top_n_high_risk.drop(columns=['PredictedRisk']))
+    top_n_high_risk_proc = pipeline.named_steps['preprocessor'].transform(top_n_high_risk)
     top_n_high_risk_proc = pipeline.named_steps['to_dataframe'].transform(top_n_high_risk_proc)
     survival_funcs = pipeline.named_steps['model'].predict_survival_function(top_n_high_risk_proc)
 
@@ -96,29 +109,28 @@ def predict_curves_on_data(pipeline, risk_scores_df,num_samples=None, max_time=1
 
     # Convert the survival data to a DataFrame
     survival_df = pd.DataFrame(survival_data)
-    return top_n_high_risk_proc, survival_df
+    return survival_df
 
-def predict_risk(num_samples=10, max_time=10):
+# def predict_curves(num_samples=10, max_time=10):
 
-    '''
-    Get survival curves for the top n high-risk employees
-    '''
-    pipeline = load_model()
-    if pipeline is None:
-        raise ValueError("Failed to load model. Please check the model source or `load_model()` function.")
+#     '''
+#     Get survival curves for the top n high-risk employees
+#     '''
+#     pipeline = load_model()
+#     if pipeline is None:
+#         raise ValueError("Failed to load model. Please check the model source or `load_model()` function.")
 
-    data_loaded, raw_data, feature_importance_df, risk_scores_df = get_processed_data() # type: ignore
+#     data_loaded, raw_data, feature_importance_df, risk_scores_df = get_processed_data() # type: ignore
 
-    if not data_loaded:
-        raise ValueError("Failed to load processed data. Please check the data source or `get_processed_data()` function.")
+#     if not data_loaded:
+#         raise ValueError("Failed to load processed data. Please check the data source or `get_processed_data()` function.")
 
-    print(Fore.BLUE + "\n Data successfully loaded for prediction." + Style.RESET_ALL)
+#     print(Fore.BLUE + "\n Data successfully loaded for prediction." + Style.RESET_ALL)
 
-    return predict_curves_on_data(pipeline, risk_scores_df, num_samples, max_time)
+#     return predict_curves_on_data(pipeline, risk_scores_df, num_samples, max_time)
 
 
 if __name__ == '__main__':
     train()
     # train_model2(save=True)
     evaluate()
-    predict_risk()

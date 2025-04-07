@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import json
 from employee_attrition.ml_logic.registry import load_model
 # from employee_attrition.ml_logic.data import get_data, save_data_to_gcs, get_processed_data
-from employee_attrition.interface.main import  predict_curves_on_data #train_model
+from employee_attrition.interface.main import  predict_risk_on_data, get_surv_curves_on_data #train_model
 from employee_attrition import params
 
 app = FastAPI()
@@ -27,34 +27,54 @@ def root():
     return {
         "greeting": "works!"
     }
+
 class RiskRequest(BaseModel):
-    risk_scores_df: Dict[str, Any]  # Flexible dictionary structure
-    num_samples: int = 10           # Default 10 samples
+    hr_data: Dict[str, Any]  # Flexible dictionary structure
+
 
 @app.post("/predictRisk")
 def predict_risk(request: RiskRequest = Body(...)):
     try:
         # Convert input to DataFrame
-        risk_scores_df = pd.DataFrame(request.risk_scores_df)
+        hr_data = pd.DataFrame(request.hr_data)
 
         # Validate
-        if request.num_samples <= 0:
-            raise HTTPException(status_code=400, detail="num_samples must be positive")
-        if len(risk_scores_df) == 0:
+        if len(hr_data) == 0:
             raise HTTPException(status_code=400, detail="Empty DataFrame received")
 
-        top_n_high_risk, survival_df = predict_curves_on_data(app.state.model, risk_scores_df, request.num_samples)
+        risk_scores_df = predict_risk_on_data(app.state.model, hr_data.set_index('EmployeeNumber'))
 
         return {
-            "top_n_high_risk": top_n_high_risk.to_dict("records"),
-            "survival_df": survival_df.to_dict("records")
+            "risk_scores_df": risk_scores_df.to_dict("records"),
         }
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Processing error: {str(e)}")
 
+class SurvivalCurvesRequest(BaseModel):
+    hr_data: Dict[str, Any]
 
+
+@app.post("/getSurvivalCurves")
+def get_surv_curves(request: SurvivalCurvesRequest = Body(...)):
+    try:
+        # Convert input to DataFrame
+        hr_df = pd.DataFrame(request.hr_data)
+
+        # Validate
+        if len(hr_df) == 0:
+            raise HTTPException(status_code=400, detail="Empty DataFrame received")
+
+        survival_df = get_surv_curves_on_data(app.state.model, hr_df.set_index('EmployeeNumber'))
+
+        return {
+            "survival_df": survival_df.to_dict("records")
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Processing error: {str(e)}")
 
 
 # @app.get("/train_model")
