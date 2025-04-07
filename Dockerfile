@@ -14,27 +14,24 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # Python optimizations
-ENV PYTHONFAULTHANDLER=1 \
+ENV PYTHONFAULTHADDLE=1 \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    DOCKER_ENV=true \
+    LOGGING_LEVEL=INFO
 
 WORKDIR /app
-# local, mlflow
-ENV MODEL_TARGET=gcs
-# local, gcs, bq
-ENV DATA_TARGET=gcs
 
-# local, gcs
-ENV DATA_SOURCE=gcs
 # Install dependencies first for better caching
 # COPY requirements_prod.txt .
 # RUN pip install --no-cache-dir -r requirements_prod.txt
 
 # Copy application
 COPY . .
+COPY prestart.sh /prestart.sh
+RUN chmod +x /prestart.sh
 
-# Runtime configuration
-EXPOSE 8000
-CMD ["uvicorn", "employee_attrition.api.fast:app", "--host", "0.0.0.0", "--port", "8000"]
+EXPOSE 8080
+CMD ["/prestart.sh"]  

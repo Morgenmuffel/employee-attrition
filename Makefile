@@ -109,7 +109,7 @@ docker_auth:
 deploy:
 	@test -n "$(GOOGLE_APPLICATION_CREDENTIALS)" || { echo "Error: GOOGLE_APPLICATION_CREDENTIALS not set"; exit 1; }
 	$(eval SERVICE_ACCOUNT := $(shell jq -r .client_email $(GOOGLE_APPLICATION_CREDENTIALS)))
-	$(eval ENV_VARS := $(shell grep -vE '^(#|$$)' .env | sed 's/^/--update-env-vars /' | tr '\n' ' '))
+	$(eval ENV_VARS := $(shell grep -vE '^(#|$$)' .env.prod | sed 's/^/--update-env-vars /' | tr '\n' ' '))
 	gcloud run deploy $(SERVICE_NAME) \
 		--image gcr.io/$(GCP_PROJECT)/$(SERVICE_NAME):$(IMAGE_TAG) \
 		--region $(GCP_REGION) \

@@ -3,11 +3,11 @@ from pydantic import BaseModel
 from typing import Dict, Any
 from fastapi import FastAPI, HTTPException, File, UploadFile, Body
 from fastapi.middleware.cors import CORSMiddleware
-import json
-from employee_attrition.ml_logic.registry import load_model
+from employee_attrition.ml_logic.registry import load_model, save_model
 # from employee_attrition.ml_logic.data import get_data, save_data_to_gcs, get_processed_data
-from employee_attrition.interface.main import  predict_risk_on_data, get_surv_curves_on_data #train_model
+from employee_attrition.interface.main import  predict_risk_on_data, get_surv_curves_on_data, train #train_model
 from employee_attrition import params
+from contextlib import asynccontextmanager
 
 app = FastAPI()
 
@@ -19,8 +19,34 @@ app.add_middleware(
     allow_headers=["*"],  # Allows all headers
 )
 
-app.state.model = load_model()
+# app.state.model = load_model()
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Lifespan handler for model loading/training"""
+    # Try to load the model
+    model = load_model()
+
+    if model is None:
+        print("⏳ No saved model found. Training a new model...")
+        try:
+            # Train and save new model
+            model = train()
+            save_model(model)
+            print("✅ New model trained and saved")
+        except Exception as e:
+            print(f"❌ Model training failed: {str(e)}")
+            raise HTTPException(status_code=500, detail="Model initialization failed")
+
+    # Store model and yield control
+    app.state.model = model
+    print("🚀 Model ready for inference")
+    yield
+
+    # Cleanup (if needed) when shutting down
+    print("🛑 Cleaning up resources...")
+
+app = FastAPI(lifespan=lifespan)
 
 @app.get("/")
 def root():

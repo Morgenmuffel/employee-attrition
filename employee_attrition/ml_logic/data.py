@@ -15,7 +15,7 @@ def get_data():
     '''
     df_raw = pd.DataFrame()
 
-    # Get Data from Goggle Cloud Storage
+    # Get Data from Google Cloud Storage
     if params.DATA_SOURCE == 'gcs':
         # data_tuple = get_data_from_gcs()[1]
         # breakpoint()

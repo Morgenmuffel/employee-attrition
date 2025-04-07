@@ -57,7 +57,7 @@ def train(save=True):
     if save == True:
         save_model(pipeline)
         save_data(raw_data, feature_importance_df, risk_score_df)
-
+    return pipeline
 
 
 def train_model_with_selection(save=False):
